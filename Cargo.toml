@@ -1,0 +1,6 @@
+[package]
+name = "squery"
+version = "0.1.0"
+authors = ["Hao Hou <ghost89413@gmail.com>"]
+
+[dependencies]
