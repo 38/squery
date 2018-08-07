@@ -2,39 +2,9 @@ mod table;
 use table::schema::{TableSchema, PrimitiveSchema};
 use table::row::Row;
 use table::table::Table;
-use table::output::{Output, OutputResult};
 
-struct SimpleOutputer {}
-
-impl Output for SimpleOutputer {
-    type IOResult = ();
-
-    fn write_schema(&mut self, _table:&Table) -> OutputResult
-    {
-        return OutputResult::Success();
-    }
-
-    fn preprocess(&mut self, _table:&Table) -> OutputResult
-    {
-        return OutputResult::Success();
-    }
-
-    fn write_record(&mut self, table:&Table, idx:usize) -> OutputResult
-    {
-        //TODO: typo
-        let n = table.num_colmns();
-
-        for i in 0..n
-        {
-            print!("{:?}\t", table.get_cell(idx, i));
-        }
-
-        print!("\n");
-        return OutputResult::Success();
-    }
-
-    fn get_output_result(&mut self) {}
-}
+mod writer;
+use writer::tablewriter::TableOutputer;
 
 fn main() {
     let schema = TableSchema {
@@ -44,7 +14,7 @@ fn main() {
     };
 
 
-    let name = "haohou".to_string();
+    let name = "plumber".to_string();
     let mut row = Row::empty(&schema);
 
     print!("{}\n", row.set(0, &name));
@@ -55,8 +25,12 @@ fn main() {
 
     table.append(row);
 
-    let mut outputer = SimpleOutputer{};
+    let mut outputer = TableOutputer::create();
+    let result = table.dump(&mut outputer);
 
-    table.dump(&mut outputer);
+    if result.is_some()
+    {
+        result.unwrap().print_text_table(160, 70);
+    }
 
 }

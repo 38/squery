@@ -23,6 +23,18 @@ pub enum PrimitiveData<'a> {
     Str(&'a String)
 }
 
+impl <'a> PrimitiveData<'a> {
+    pub fn to_human_readable(&self) -> String
+    {
+        match self {
+            &PrimitiveData::Nothing()   => "".to_string(),
+            &PrimitiveData::Int(what)   => format!("{}", what),
+            &PrimitiveData::Float(what) => format!("{}", what),
+            &PrimitiveData::Str(what)   => what.clone()
+        }
+    }
+}
+
 impl <'a> Default for PrimitiveData<'a> {
     fn default() -> PrimitiveData<'a>
     {
