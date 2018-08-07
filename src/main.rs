@@ -17,9 +17,9 @@ fn main() {
     let name = "plumber".to_string();
     let mut row = Row::empty(&schema);
 
-    print!("{}\n", row.set(0, &name));
-    print!("{}\n", row.set(1, 12345));
-    print!("{}\n", row.set(2, 0.01));
+    row.set(0, &name);
+    row.set(1, 12345);
+    row.set(2, 0.01);
 
     let mut table = Table::empty(&schema);
 

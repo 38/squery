@@ -10,6 +10,7 @@ use table::primitive::PrimitiveData;
 
 /**
  * @brief The table data struture
+ * @todo add lazy evaluation support
  **/
 #[allow(dead_code)]
 pub struct Table<'cell, 'schema:'cell> {
