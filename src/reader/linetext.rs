@@ -4,41 +4,87 @@
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Read;
-use std::collections::HashSet;
 use std::mem::swap;
 use ::table::input::Input;
 use ::table::schema::{TableSchema, PrimitiveSchema};
 use ::table::row::Row;
 use ::table::primitive::PrimitiveValueT;
 
-#[allow(dead_code)]
-pub struct LineTextReader<'file, T:Read + 'file> {
-    fp       : &'file mut BufReader<T>,
-    field_sep: HashSet<char>,
-    schema   : Option<TableSchema>
+/**
+ * Represent the schema staus of this parser
+ **/
+enum SchemaStatus {
+    /// We are still waiting for the schema spec
+    Undeterminend,
+    /// We just determined the schema
+    Determined(TableSchema),
+    /// We have passed out the schema already
+    Passed
 }
 
-impl <'file, T:Read + 'file> LineTextReader<'file, T> {
-    fn parse_schema_from_input(&mut self) -> Option<&TableSchema>
+impl SchemaStatus {
+    /**
+     * Check if we need to parse the schema
+     * @return result
+     **/
+    fn should_determine_schema(&self) -> bool 
+    {
+        match self 
+        {
+            &SchemaStatus::Undeterminend   => true,
+            _                              => false
+        }
+    }
+}
+
+pub trait LineParser {
+    fn parse_next_line<'text, 'schema>(&self, s:&'text String, schema:&'schema TableSchema) -> Option<Vec<&'text str>>;
+}
+
+/**
+ * @brief The line text parser is used to interpret the 
+ *        line based text as a table
+ **/
+pub struct LineTextReader<'file, T:Read + 'file, P: LineParser> {
+    /// The file we want to read
+    fp       : &'file mut BufReader<T>,
+    /// The schema 
+    schema   : SchemaStatus,
+    /// The line parser
+    parser   : P
+}
+
+impl <'file, T:Read + 'file, P: LineParser> LineTextReader<'file, T, P> {
+    /**
+     * @brief Parse the schema from the first line of the input
+     * @return The parse result
+     **/
+    fn parse_schema_from_input(&mut self) -> bool
     {
         let mut schema_line = String::new();
         if let Ok(_) = self.fp.read_line(&mut schema_line)
         {
             if let Some(schema) = TableSchema::from_spec(&schema_line) 
             {
-                self.schema = Some(schema);
-                return self.schema.as_ref();
+                self.schema = SchemaStatus::Determined(schema);
+                return true
             }
         }
-        return None;
+        return false;
     }
+    /**
+     * @brief Create the default parser, which have n string columns 
+     * @param n The number of columns
+     * @param fp The data source pointer
+     * @return The newly created line text reader
+     **/
     #[allow(dead_code)]
-    pub fn create_default(n:usize, fp: &'file mut BufReader<T>) -> LineTextReader<'file, T>
+    pub fn create_default(n:usize, fp: &'file mut BufReader<T>, parser:P) -> LineTextReader<'file, T, P>
     {
         return LineTextReader {
             fp        : fp,
-            field_sep : HashSet::<char>::new(),
-            schema    : Some(TableSchema {
+            parser    : parser,
+            schema    : SchemaStatus::Determined(TableSchema {
                 sort_keys : Vec::new(),
                 sorted    : false,
                 types     : {
@@ -53,42 +99,62 @@ impl <'file, T:Read + 'file> LineTextReader<'file, T> {
             })
         };
     }
+    /**
+     * @brief Create a new self-explain line text, which means the first line of the text is the 
+     * schema description
+     * @param fp The file we want to read from
+     * @return The newly created reader
+     **/
     #[allow(dead_code)]
-    pub fn create_self_explain_parser(fp: &'file mut BufReader<T>) -> LineTextReader<'file, T>
+    pub fn create_self_explain_parser(fp: &'file mut BufReader<T>, parser:P) -> LineTextReader<'file, T, P>
     {
         let ret = LineTextReader {
             fp         : fp,
-            field_sep  : HashSet::<char>::new(),
-            schema     : None
+            parser     : parser,
+            schema     : SchemaStatus::Undeterminend 
         };
         return ret;
     }
+    /**
+     * @brief Create a line text parser
+     * @param schema The schema string
+     * @param fp The file pointer
+     * @return The newly created parser
+     **/
     #[allow(dead_code)]
-    pub fn create_parser(schema:&String, fp: &'file mut BufReader<T>) -> LineTextReader<'file, T>
+    pub fn create_parser(schema:&String, fp: &'file mut BufReader<T>, parser:P) -> Option<LineTextReader<'file, T, P>>
     {
-        return LineTextReader {
-            fp         : fp,
-            field_sep  : HashSet::<char>::new(),
-            schema     : TableSchema::from_spec(schema)
-        };
+        if let Some(schema) = TableSchema::from_spec(schema)
+        {
+            return Some(LineTextReader {
+                fp         : fp,
+                parser     : parser,
+                schema     : SchemaStatus::Determined(schema)
+            });
+        }
+        return None;
     }
 
-    pub fn add_field_sep(&mut self, ch:char)
-    {
-        self.field_sep.insert(ch);
-    }
 }
 
-impl <'file, T:Read + 'file> Input for LineTextReader<'file, T> {
+impl <'file, T:Read + 'file, P: LineParser> Input for LineTextReader<'file, T, P> {
     fn determine_table_schema(&mut self) -> Option<TableSchema>
     {
-        if self.schema.is_none()
+        if self.schema.should_determine_schema() && self.parse_schema_from_input()
         {
-            self.parse_schema_from_input();
+            self.schema = SchemaStatus::Passed;
+            return None;
         }
-        let mut ret = None as Option<TableSchema>;
+
+        let mut ret = SchemaStatus::Passed;
         swap(&mut ret, &mut self.schema);
-        return ret;
+
+        if let SchemaStatus::Determined(schema) = ret
+        {
+            return Some(schema);
+        }
+
+        return None;
     }
 
     fn parse_next_row<'a>(&mut self, schema:&'a TableSchema) -> Option<Row<'a>>
@@ -103,7 +169,6 @@ impl <'file, T:Read + 'file> Input for LineTextReader<'file, T> {
             return false;
         }
 
-        let mut field_idx = 0;
         let mut line = String::new();
         let mut row = Row::empty(schema);
         while let Ok(size) = self.fp.read_line(&mut line)
@@ -118,55 +183,27 @@ impl <'file, T:Read + 'file> Input for LineTextReader<'file, T> {
                 return None;
             }
 
-            let mut to_parse = &line[0..];
-            while field_idx < schema.types.len() && to_parse.len() > 0
+            let mut invalid = false;
+
+            if let Some(result) = self.parser.parse_next_line(&line, schema)
             {
-                while to_parse.len() > 0
+                for (field_idx, field_str) in result.iter().enumerate()
                 {
-                    let (head, tail) = to_parse.split_at(1);
-                    if !self.field_sep.contains(&head.chars().next().unwrap())
-                    {
-                        break;
-                    }
-                    to_parse = tail
-                }
-
-                let mut idx = 0;
-                let mut field = None as Option<&str>;
-                while to_parse.len() >= idx
-                {
-                    let (first, rem) = to_parse.split_at(idx);
-                    if rem.len() == 0 || self.field_sep.contains(&rem.chars().next().unwrap())
-                    {
-                        field = Some(first);
-                        to_parse = rem;
-                        break;
-                    }
-                    idx += 1
-                }
-
-                if let Some(field_str) = field 
-                {
-                    if match schema.field_type(field_idx){
+                    if !match schema.field_type(field_idx){
                         &PrimitiveSchema::Int    => try_parse(&mut row, field_idx, &| | {field_str.parse::<i64>()}),
                         &PrimitiveSchema::Float  => try_parse(&mut row, field_idx, &| | {field_str.parse::<f64>()}),
                         &PrimitiveSchema::Str    => try_parse::<String, ()>(&mut row, field_idx, &| | {Ok(field_str.to_string())})
                     }
                     {
-                        field_idx += 1;
-                        continue;
-                    }
-                    else
-                    {
-                        return None;
+                        invalid = true;
                     }
                 }
-                else
-                {
-                    break;
-                }
+            } 
+
+            if !invalid
+            {
+                break;
             }
-            break;
         }
         return Some(row);
     }
