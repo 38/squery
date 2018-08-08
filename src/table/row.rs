@@ -9,14 +9,14 @@ use table::primitive::{PrimitiveData, PrimitiveValueT};
 /**
  * @brief The data structure used to represent one row
  **/
-pub struct Row<'cell, 'schema:'cell> {
+pub struct Row<'schema> {
     /// The schema we are using
     schema: &'schema TableSchema,
     /// The actual column data
-    column_data: Vec<PrimitiveData<'cell>>
+    column_data: Vec<PrimitiveData>
 }
 
-impl <'cell, 'schema> Row<'cell, 'schema> {
+impl <'schema> Row<'schema> {
 
     /**
      * @brief check if the schema is the expected schema
@@ -33,7 +33,7 @@ impl <'cell, 'schema> Row<'cell, 'schema> {
      * @param idx The index to access
      * @return The reference to the Primitve data
      **/
-    pub fn value_at(&self, idx:usize) -> &PrimitiveData<'cell>
+    pub fn value_at(&self, idx:usize) -> &PrimitiveData
     {
         return &self.column_data[idx];
     }
@@ -62,7 +62,7 @@ impl <'cell, 'schema> Row<'cell, 'schema> {
      * @return If this operation success
      **/
     pub fn set<T>(&mut self, idx: usize, val: T) -> bool
-        where T: PrimitiveValueT<'cell, T> 
+        where T: PrimitiveValueT<T> 
     {
         if self.schema.check_schema(idx, T::schema_type())
         {

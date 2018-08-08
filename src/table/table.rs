@@ -17,12 +17,12 @@ use table::input::Input;
  *        if this is empty, the data is fully loaded to memory,
  *        thus we are ready to performe random access
  **/
-pub enum TableDataSource<'rt> {
+pub enum TableDataSource<'parser> {
     /// No input
     Empty,
     /// Use a parser as Input, the second bool represent if we need to keep all the data we have
     /// read
-    Parser(&'rt mut Input, bool)
+    Parser(&'parser mut Input, bool)
 }
 
 impl <'a> TableDataSource<'a> {
@@ -41,23 +41,23 @@ impl <'a> TableDataSource<'a> {
  * @todo add lazy evaluation support
  **/
 #[allow(dead_code)]
-pub struct Table<'cell, 'schema:'cell> {
+pub struct Table<'schema, 'parser> {
     /// The table's schema
     pub schema : &'schema TableSchema,
     /// The row data
-    rows   : Vec<Row<'cell, 'schema>>,
+    rows   : Vec<Row<'schema>>,
     /// The data source we want to use
-    data_source: TableDataSource<'cell>,
+    data_source: TableDataSource<'parser>,
     /// The cursor for the seq access 
     cursor:usize
 }
 
-pub struct TableRandomAccessor<'table, 'cell:'table, 'schema:'cell> {
-    table:&'table mut Table<'cell, 'schema>
+pub struct TableRandomAccessor<'table, 'schema:'table, 'parser:'table> {
+    table:&'table mut Table<'schema, 'parser>
 }
 
-impl <'obj, 'cell:'obj, 'schema:'cell> Iterator for &'obj mut Table<'cell, 'schema> {
-    type Item = &'obj Row<'cell, 'schema>;
+impl <'table, 'schema:'table, 'parser:'table> Iterator for &'table mut Table<'schema, 'parser> {
+    type Item = &'table Row<'schema>;
 
     fn next<'a>(&'a mut self) -> Option<Self::Item>
     {
@@ -71,14 +71,14 @@ impl <'obj, 'cell:'obj, 'schema:'cell> Iterator for &'obj mut Table<'cell, 'sche
             self.cursor += 1;
 
             return Some(unsafe{
-                transmute::<&'a Row<'cell, 'schema>, Self::Item>(&self.rows[self.cursor - 1])
+                transmute::<&'a Row<'schema>, Self::Item>(&self.rows[self.cursor - 1])
             });
         }
         else
         {
             if let &mut TableDataSource::Parser(ref mut parser, ref _keep_used) = &mut self.data_source
             {
-                if let Some(new_row) = parser.parse_next_row()
+                if let Some(new_row) = parser.parse_next_row(self.schema)
                 {
                     if 0 == self.rows.len() || *_keep_used
                     {
@@ -89,7 +89,7 @@ impl <'obj, 'cell:'obj, 'schema:'cell> Iterator for &'obj mut Table<'cell, 'sche
                         self.rows[0] = new_row;
                     }
                     return Some(unsafe {
-                        transmute::<&'a Row<'cell, 'schema>, Self::Item>(&self.rows[self.rows.len() - 1])
+                        transmute::<&'a Row<'schema>, Self::Item>(&self.rows[self.rows.len() - 1])
                     });
                 }
                 return None;
@@ -100,7 +100,7 @@ impl <'obj, 'cell:'obj, 'schema:'cell> Iterator for &'obj mut Table<'cell, 'sche
 
 }
 
-impl <'table, 'cell:'table, 'schema:'cell> TableRandomAccessor<'table, 'cell, 'schema> {
+impl <'table, 'schema:'table, 'parser:'table> TableRandomAccessor<'table, 'schema, 'parser> {
     /**
      * @brief Get the number of rows in the table
      * @return The result
@@ -117,7 +117,7 @@ impl <'table, 'cell:'table, 'schema:'cell> TableRandomAccessor<'table, 'cell, 's
      * @param col The column index
      * @return The reference to the cell data
      **/
-    pub fn get_cell(&self, row:usize, col:usize) -> Option<&'cell PrimitiveData>
+    pub fn get_cell<'a>(&'a self, row:usize, col:usize) -> Option<&'a PrimitiveData>
     {
         return Some(self.table.rows[row].value_at(col));
     }
@@ -127,7 +127,7 @@ impl <'table, 'cell:'table, 'schema:'cell> TableRandomAccessor<'table, 'cell, 's
      * @param row The row to append
      * @return if the operation success
      **/
-    pub fn append(&mut self, row:Row<'cell, 'schema>) -> bool 
+    pub fn append(&mut self, row:Row<'schema>) -> bool 
     {
         if row.validate_schema(self.table.schema)
         {
@@ -138,14 +138,14 @@ impl <'table, 'cell:'table, 'schema:'cell> TableRandomAccessor<'table, 'cell, 's
     }
 }
 
-impl <'cell, 'schema:'cell> Table <'cell, 'schema> {
+impl <'schema, 'parser> Table <'schema, 'parser> {
     /**
      * @brief Create an empty table
      * @param schema The schema of the table
      * @return the newly create table
      **/
     #[allow(dead_code)]
-    pub fn empty(schema: &'schema TableSchema, data_source : TableDataSource<'cell>) -> Table<'cell, 'schema> 
+    pub fn empty(schema: &'schema TableSchema, data_source : TableDataSource<'parser>) -> Table<'schema, 'parser> 
     {
         return Table {
             schema : schema,
@@ -196,7 +196,7 @@ impl <'cell, 'schema:'cell> Table <'cell, 'schema> {
      * @brief Get the random accessor
      * @return The table accessor created from the table
      **/
-    pub fn get_random_accessor<'a>(&'a mut self) -> TableRandomAccessor<'a, 'cell, 'schema>
+    pub fn get_random_accessor<'a>(&'a mut self) -> TableRandomAccessor<'a, 'schema, 'parser>
     {
         if !self.data_source.is_empty()
         {
@@ -204,7 +204,7 @@ impl <'cell, 'schema:'cell> Table <'cell, 'schema> {
             {
                 loop 
                 {
-                    if let Some(row) = parser.parse_next_row()
+                    if let Some(row) = parser.parse_next_row(self.schema)
                     {
                         self.rows.push(row);
                     }

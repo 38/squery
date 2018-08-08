@@ -1,39 +1,33 @@
 mod table;
-use table::schema::{TableSchema, PrimitiveSchema};
-use table::row::Row;
+//use table::row::Row;
 use table::table::{Table, TableDataSource};
+use table::input::Input;
 
 mod writer;
 use writer::tablewriter::TableOutputer;
 
 mod reader;
+use reader::linetext::LineTextReader;
+
+
 
 fn main() {
-    let schema = TableSchema {
-        sort_keys : vec![],
-        sorted    : false,
-        types     : vec![("name".to_string(), PrimitiveSchema::Str), ("pid".to_string(), PrimitiveSchema::Int), ("time".to_string(), PrimitiveSchema::Float)]
-    };
+
+    let mut br = std::io::BufReader::new("plumber 12345 1.0\n".as_bytes());
+
+    let mut parser = LineTextReader::create_parser(&".name:String .pid:Int .time:Float".to_string(), &mut br);
+
+    parser.add_field_sep('\t');
+    parser.add_field_sep(' ');
+    parser.add_field_sep('\n');
 
 
-    let name = "plumber".to_string();
-    let mut row = Row::empty(&schema);
+    let schema = parser.determine_table_schema();
 
-    row.set(0, &name);
-    row.set(1, 12345);
-    row.set(2, 0.01);
-
-    let mut table = Table::empty(&schema, TableDataSource::Empty);
-
-    table.get_random_accessor().append(row);
-
+    let mut table = Table::empty(schema.as_ref().unwrap(), TableDataSource::Parser(&mut parser, false));
+    
     let mut outputer = TableOutputer::create();
-    let result = table.dump(&mut outputer);
 
-    if result.is_some()
-    {
-        result.unwrap().print_text_table(160, 70);
-    }
+    table.dump(&mut outputer).unwrap().print_text_table(160, 70);
 
-    println!("{:?}", TableSchema::from_spec(&".name:String .pid:Int .time:Float sort:name,pid".to_string()));
 }

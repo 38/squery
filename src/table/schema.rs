@@ -8,7 +8,6 @@
  * @todo Add date support
  **/
 #[derive(Debug)]
-#[allow(dead_code)]
 #[derive(PartialEq)]
 pub enum PrimitiveSchema {
     /// The column is an integer
@@ -33,6 +32,15 @@ pub struct TableSchema {
 }
 
 impl TableSchema {
+    /**
+     * Get the type of the n-th field
+     * @param idx The index
+     * @return The field type
+     **/
+    pub fn field_type(&self, idx:usize) -> &PrimitiveSchema
+    {
+        return &self.types[idx].1;
+    }
     /**
      * @brief Get the number of columns of the table
      * @return The number of columns
@@ -213,6 +221,7 @@ impl TableSchema {
                 {
                     "sort"   =>   { schema.sorted = false; }
                     "sorted" =>   { schema.sorted = true; }
+                    ""       =>   { return Some(next); }
                     _        =>   { return None; }
                 }
 
@@ -223,7 +232,7 @@ impl TableSchema {
                 }
             }
 
-            return None;
+            return Some(parse_ws(s));
         }
 
         let (schema_list, next) = parse_field_schema_list(spec);
