@@ -129,9 +129,12 @@ impl <'table, 'cell:'table, 'schema:'cell> TableRandomAccessor<'table, 'cell, 's
      **/
     pub fn append(&mut self, row:Row<'cell, 'schema>) -> bool 
     {
-        // TODO: check if the shema matches
-        self.table.rows.push(row);
-        return true;
+        if row.validate_schema(self.table.schema)
+        {
+            self.table.rows.push(row);
+            return true;
+        }
+        return false;
     }
 }
 

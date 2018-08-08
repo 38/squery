@@ -17,6 +17,17 @@ pub struct Row<'cell, 'schema:'cell> {
 }
 
 impl <'cell, 'schema> Row<'cell, 'schema> {
+
+    /**
+     * @brief check if the schema is the expected schema
+     * @param schema The expected schema
+     * @return check result
+     **/
+    pub fn validate_schema(&self, schema:&TableSchema) -> bool
+    {
+
+        return schema == self.schema;
+    }
     /**
      * @brief Access the value of the column
      * @param idx The index to access
@@ -32,7 +43,6 @@ impl <'cell, 'schema> Row<'cell, 'schema> {
      * @param schema The table schema we want to use 
      * @return The newly created row data
      **/
-    #[allow(dead_code)]
     pub fn empty(schema:&TableSchema) -> Row 
     {
         let mut ret = Row {
@@ -51,7 +61,6 @@ impl <'cell, 'schema> Row<'cell, 'schema> {
      * @param val The value
      * @return If this operation success
      **/
-    #[allow(dead_code)]
     pub fn set<T>(&mut self, idx: usize, val: T) -> bool
         where T: PrimitiveValueT<'cell, T> 
     {

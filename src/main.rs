@@ -35,4 +35,5 @@ fn main() {
         result.unwrap().print_text_table(160, 70);
     }
 
+    println!("{:?}", TableSchema::from_spec(&".name:String .pid:Int .time:Float sort:name,pid".to_string()));
 }
