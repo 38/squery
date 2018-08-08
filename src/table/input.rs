@@ -4,8 +4,8 @@
 use table::row::Row;
 use table::schema::TableSchema;
 
-pub trait Input {
+pub trait Input{
     fn determine_table_schema(&mut self) -> TableSchema;
-    fn parse_next_row(&mut self) -> Option<Row>;
+    fn parse_next_row<'cell, 'schema:'cell> (&mut self) -> Option<Row<'cell, 'schema>>;
 }
 

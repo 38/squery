@@ -23,12 +23,12 @@ impl OutputResult {
      * @param how The continuation
      * @return the result
      **/
-    pub fn then<T>(&self, output:&mut T, how:&Fn(&mut T) -> OutputResult) -> OutputResult
+    pub fn then<T>(&mut self, table:&mut Table, output:&mut T, how:&Fn(&mut Table, &mut T) -> OutputResult) -> OutputResult
         where T : Output
     {
         match self {
-            &OutputResult::Success() => how(output),
-            &OutputResult::Fail()    => OutputResult::Fail()
+            &mut OutputResult::Success() => how(table, output),
+            &mut OutputResult::Fail()    => OutputResult::Fail()
         }
     }
 }
@@ -46,20 +46,20 @@ pub trait Output {
      * @brief Write the table schema
      * @param table The table to write
      **/
-    fn write_schema(&mut self, table:&Table) -> OutputResult;
+    fn write_schema(&mut self, table:&mut Table) -> OutputResult;
     /**
      * @brief Scan the table before we actually started.
      * @note This is used when we want to adjust the column width
      * @return Result
      **/
-    fn preprocess(&mut self, table:&Table) -> OutputResult;
+    fn preprocess(&mut self, table:&mut Table) -> OutputResult;
     /**
      * @brief write a single row
      * @param table The table to write
      * @param idx The row index
      * @return write result
      **/
-    fn write_record(&mut self, table:&Table, idx:usize) -> OutputResult;
+    fn write_records(&mut self, table:&mut Table) -> OutputResult;
 
     /**
      * @brief Get the output result

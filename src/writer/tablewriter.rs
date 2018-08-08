@@ -156,7 +156,7 @@ impl TableOutputer {
 impl Output for TableOutputer {
     type IOResult = TableResult;
 
-    fn write_schema(&mut self, table:&Table) -> OutputResult 
+    fn write_schema(&mut self, table:&mut Table) -> OutputResult 
     {
         match &mut self.result
         {
@@ -172,25 +172,29 @@ impl Output for TableOutputer {
         }
     }
 
-    fn preprocess(&mut self, _table:&Table) -> OutputResult 
+    fn preprocess(&mut self, _table:&mut Table) -> OutputResult 
     {
         return OutputResult::Success();
     }
 
-    fn write_record(&mut self, table:&Table, idx:usize) -> OutputResult 
+    fn write_records(&mut self, table:&mut Table) -> OutputResult 
     {
         match &mut self.result
         {
             &mut None          => OutputResult::Fail(),
             &mut Some(ref mut result) => {
-                let mut cur_row = Vec::new();
-                for c in 0..table.num_columns()
+                let cols = table.num_columns();
+                for raw_row in table
                 {
-                    let cell_data = table.get_cell(idx, c);
+                    let mut cur_row = Vec::new();
+                    for c in 0..cols
+                    {
+                        let cell_data = raw_row.value_at(c);
 
-                    cur_row.push(cell_data.to_human_readable());
+                        cur_row.push(cell_data.to_human_readable());
+                    }
+                    result.body.push(cur_row);
                 }
-                result.body.push(cur_row);
                 OutputResult::Success()
             }
         }

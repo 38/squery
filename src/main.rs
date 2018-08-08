@@ -1,10 +1,12 @@
 mod table;
 use table::schema::{TableSchema, PrimitiveSchema};
 use table::row::Row;
-use table::table::Table;
+use table::table::{Table, TableDataSource};
 
 mod writer;
 use writer::tablewriter::TableOutputer;
+
+mod reader;
 
 fn main() {
     let schema = TableSchema {
@@ -21,9 +23,9 @@ fn main() {
     row.set(1, 12345);
     row.set(2, 0.01);
 
-    let mut table = Table::empty(&schema);
+    let mut table = Table::empty(&schema, TableDataSource::Empty);
 
-    table.append(row);
+    table.get_random_accessor().append(row);
 
     let mut outputer = TableOutputer::create();
     let result = table.dump(&mut outputer);
