@@ -1,0 +1,16 @@
+(command-line	"-l"
+	(schema ".line:Int .file:String")
+	(sv	" \t\n\r")
+)
+(command-line	"-w"
+	(schema ".word:Int .file:String")
+	(sv	" \t\n\r")
+)
+(command-line	"-c"
+	(schema ".char:Int .file:String")
+	(sv	" \t\n\r")
+)
+(command-line	""
+	(schema ".line:Int .word:Int .char:Int .file:String")
+	(sv	" \t\n\r")
+)

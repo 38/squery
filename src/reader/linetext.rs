@@ -38,6 +38,12 @@ impl SchemaStatus {
 }
 
 pub trait LineParser {
+    /**
+     * @brief Parse the next line into a vector of fields
+     * @param s The string to parse
+     * @param schema The schema we are using for current table
+     * @return The parsed vector or None
+     **/
     fn parse_next_line<'text, 'schema>(&self, s:&'text String, schema:&'schema TableSchema) -> Option<Vec<&'text str>>;
 }
 

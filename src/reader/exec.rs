@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2018, Hao Hou
+ *
+ * The line reader that makes the standard output as a structured table
  */
 use std::process::{Command, ChildStdout, Stdio};
 use std::io::{BufReader, BufRead};
@@ -8,13 +10,23 @@ use table::input::Input;
 use table::schema::TableSchema;
 use table::row::Row;
 
-#[allow(dead_code)]
+/**
+ * @brief The reader object that executes a command
+ **/
 pub struct ExecReader<TParser : LineParser> {
+    /// The actual line reader we used to parse the result
     line_reader: LineTextReader<ChildStdout , TParser>
 }
 
 impl <TParser:LineParser> ExecReader<TParser> {
-    #[allow(dead_code)]
+    /**
+     * @brief Create a new execute reader
+     * @param program The program we want to call
+     * @param args The arguments 
+     * @param skip How many lines we want to skip before parsing
+     * @param parser The line parser instance
+     * @return The result
+     **/
     pub fn create<'x, 'y, 'z>(program:&'x str, args:&'y[&'y str], skip:usize, schema:&'z String, parser:TParser) -> Option<ExecReader<TParser>>
     {
         if let Ok(child) = Command::new(program).args(args).stdout(Stdio::piped()).spawn()

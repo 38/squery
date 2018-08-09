@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2018, Hao Hou
+ *
+ * The parser that is used to parse the seperated value, for example CSV or TSV
  */
 use std::collections::HashSet;
 use reader::linetext::LineParser;
