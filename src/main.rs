@@ -7,16 +7,16 @@ mod writer;
 use writer::tablewriter::TableOutputer;
 
 mod reader;
-use reader::linetext::LineTextReader;
 use reader::svparser::SepValParser;
+use reader::exec::ExecReader;
 
 
 
 fn main() {
-
-    let mut br = std::io::BufReader::new("plumber 12345 1.0\n".as_bytes());
-
-    if let Some(mut parser) = LineTextReader::create_parser(&".name:String .pid:Int .time:Float".to_string(), &mut br, SepValParser::create(&" \t\n".to_string()))
+    let schema = ".pid:Int .tty:String .time:String sorted:pid".to_string();
+    //let br = std::io::BufReader::new("plumber 12345 1.0\n".as_bytes());
+    
+    if let Some(mut parser) = ExecReader::create("ps", &["-A"], 1, &schema, SepValParser::create(&" \t\n".to_string()))
     {
 
         let schema = parser.determine_table_schema();

@@ -45,16 +45,16 @@ pub trait LineParser {
  * @brief The line text parser is used to interpret the 
  *        line based text as a table
  **/
-pub struct LineTextReader<'file, T:Read + 'file, P: LineParser> {
+pub struct LineTextReader<T:Read, P: LineParser> {
     /// The file we want to read
-    fp       : &'file mut BufReader<T>,
+    fp       : BufReader<T>,
     /// The schema 
     schema   : SchemaStatus,
     /// The line parser
     parser   : P
 }
 
-impl <'file, T:Read + 'file, P: LineParser> LineTextReader<'file, T, P> {
+impl <T:Read, P: LineParser> LineTextReader<T, P> {
     /**
      * @brief Parse the schema from the first line of the input
      * @return The parse result
@@ -79,7 +79,7 @@ impl <'file, T:Read + 'file, P: LineParser> LineTextReader<'file, T, P> {
      * @return The newly created line text reader
      **/
     #[allow(dead_code)]
-    pub fn create_default(n:usize, fp: &'file mut BufReader<T>, parser:P) -> LineTextReader<'file, T, P>
+    pub fn create_default(n:usize, fp: BufReader<T>, parser:P) -> LineTextReader<T, P>
     {
         return LineTextReader {
             fp        : fp,
@@ -106,7 +106,7 @@ impl <'file, T:Read + 'file, P: LineParser> LineTextReader<'file, T, P> {
      * @return The newly created reader
      **/
     #[allow(dead_code)]
-    pub fn create_self_explain_parser(fp: &'file mut BufReader<T>, parser:P) -> LineTextReader<'file, T, P>
+    pub fn create_self_explain_parser(fp: BufReader<T>, parser:P) -> LineTextReader<T, P>
     {
         let ret = LineTextReader {
             fp         : fp,
@@ -122,7 +122,7 @@ impl <'file, T:Read + 'file, P: LineParser> LineTextReader<'file, T, P> {
      * @return The newly created parser
      **/
     #[allow(dead_code)]
-    pub fn create_parser(schema:&String, fp: &'file mut BufReader<T>, parser:P) -> Option<LineTextReader<'file, T, P>>
+    pub fn create_parser(schema:&String, fp: BufReader<T>, parser:P) -> Option<LineTextReader<T, P>>
     {
         if let Some(schema) = TableSchema::from_spec(schema)
         {
@@ -137,7 +137,7 @@ impl <'file, T:Read + 'file, P: LineParser> LineTextReader<'file, T, P> {
 
 }
 
-impl <'file, T:Read + 'file, P: LineParser> Input for LineTextReader<'file, T, P> {
+impl <T:Read, P: LineParser> Input for LineTextReader<T, P> {
     fn determine_table_schema(&mut self) -> Option<TableSchema>
     {
         if self.schema.should_determine_schema() && self.parse_schema_from_input()
