@@ -121,6 +121,7 @@ impl TableResult {
         }
     }
 
+    #[allow(dead_code)]
     pub fn print_text_table(&self, max_width:usize, min_width:usize)
     {
         let layout = self.determine_layout(max_width, min_width);
@@ -137,11 +138,13 @@ impl TableResult {
     }
 }
 
+#[allow(dead_code)]
 pub struct TableOutputer {
     result : Option<TableResult>,
 }
 
 impl TableOutputer {
+    #[allow(dead_code)]
     pub fn create() -> TableOutputer
     {
         return TableOutputer {

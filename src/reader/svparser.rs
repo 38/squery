@@ -7,12 +7,14 @@ use std::collections::HashSet;
 use reader::linetext::LineParser;
 use ::table::schema::TableSchema;
 
+#[allow(dead_code)]
 pub struct SepValParser {
     /// The set of field seperators
     field_sep: HashSet<char>
 }
 
 impl SepValParser {
+    #[allow(dead_code)]
     pub fn create(delim:&String) -> SepValParser 
     {
         let mut ret = SepValParser {

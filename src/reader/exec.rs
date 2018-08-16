@@ -11,7 +11,7 @@ use table::schema::TableSchema;
 use table::row::Row;
 
 /**
- * @brief The reader object that executes a command
+ * The reader object that executes a command
  **/
 pub struct ExecReader<TParser : LineParser> {
     /// The actual line reader we used to parse the result
@@ -20,13 +20,16 @@ pub struct ExecReader<TParser : LineParser> {
 
 impl <TParser:LineParser> ExecReader<TParser> {
     /**
-     * @brief Create a new execute reader
-     * @param program The program we want to call
-     * @param args The arguments 
-     * @param skip How many lines we want to skip before parsing
-     * @param parser The line parser instance
-     * @return The result
+     * Create a new execute reader
+     *
+     * * `program`: The program we want to call
+     * * `param`: args The arguments 
+     * * `param` skip How many lines we want to skip before parsing
+     * * `param` parser The line parser instance
+     *
+     * Returns the newly created execution reader
      **/
+    #[allow(dead_code)]
     pub fn create<'x, 'y, 'z>(program:&'x str, args:&'y[&'y str], skip:usize, schema:&'z String, parser:TParser) -> Option<ExecReader<TParser>>
     {
         if let Ok(child) = Command::new(program).args(args).stdout(Stdio::piped()).spawn()

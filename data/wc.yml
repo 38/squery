@@ -1,0 +1,23 @@
+# The rule for wc -l which only produce the line number in the output
+-
+    arguments: "[^\\-]*(-l|--lines)([^\\-][^ ]*)*"
+    schema: .line:Int .file:String
+    sepval: " \t\n\r"
+
+# The rule for wc -w which only produce the word count 
+- 
+    arguments: "[^\\-]*(-w|--words)([^\\-][^ ]*)*"
+    schema: .word:Int .file:String
+    sepval: " \t\n\r"
+
+# The rule for wc -c only produces the char count
+-
+    arguments: "[^\\-]*(-c|--chars)([^\\-][^ ]*)*"
+    schema: .char:Int .file:String
+    sepval: " \t\n\r"
+
+# The rule for the general cases
+-
+    arguments: .*
+    schema: .line:Int .word:Int .char:Int .file:String
+    sepval: " \t\n\r"
